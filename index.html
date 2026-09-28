@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <title>O Interruptor - Versão Perfeita</title>
+    <style>
+        * { box-sizing: border-box; user-select: none; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000; color: #fff; font-family: 'Courier New', Courier, monospace; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        #game-container { text-align: center; position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .flashlight-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background: radial-gradient(circle 120px at var(--mouse-x, 50%) var(--mouse-y, 50%), transparent 100%, rgba(0, 0, 0, 0.98) 100%); display: none; z-index: 1; }
+        .switch-btn { width: 60px; height: 100px; background: #222; border: 4px solid #444; border-radius: 10px; cursor: pointer; position: relative; display: flex; justify-content: center; align-items: center; }
+        .switch-lever { width: 40px; height: 40px; background: #fff; border-radius: 5px; position: absolute; top: 6px; transition: top 0.1s; }
+        .switch-btn.on .switch-lever { top: 50px; background: #aaa; }
+        .item { width: 80px; height: 80px; display: none; justify-content: center; align-items: center; font-size: 40px; border: 2px dashed #333; margin: 20px; z-index: 2; }
+        .message { font-size: 24px; margin-bottom: 20px; min-height: 30px; max-width: 80%; z-index: 2; }
+        .instruction { font-size: 16px; color: #888; margin-top: 10px; z-index: 2; }
+        #final-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #bfff00; color: #000; display: none; justify-content: center; align-items: center; text-align: center; font-family: sans-serif; font-weight: bold; font-size: 32px; padding: 20px; z-index: 10; }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="flashlight" class="flashlight-bg"></div>
+        <div id="msg" class="message">Está tudo escuro...</div>
+        <div id="interruptor" class="switch-btn"><div class="switch-lever"></div></div>
+        <div style="display: flex; gap: 40px; justify-content: center; align-items: center;">
+            <div id="caixa" class="item">📦</div>
+            <div id="escada" class="item">🪜</div>
+            <div id="disjuntor" class="item">⚡</div>
+        </div>
+        <div id="inst" class="instruction">Clica no interruptor para acender a luz.</div>
+    </div>
+    
+    <div id="final-screen">Esse site podre foi criado pelo CPlays, Gemini e Grok</div>
+
+    <script>
+        let step = 0;
+        const msg = document.getElementById('msg');
+        const inst = document.getElementById('inst');
+        const interruptor = document.getElementById('interruptor');
+        const flashlight = document.getElementById('flashlight');
+        const caixa = document.getElementById('caixa');
+        const escada = document.getElementById('escada');
+        const disjuntor = document.getElementById('disjuntor');
+        const finalScreen = document.getElementById('final-screen');
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+
+            if (type === 'click') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.8, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.08);
+            } else if (type === 'boom') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(70, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.9, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+            }
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            const rect = document.body.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            document.documentElement.style.setProperty('--mouse-x', `${x}%`);
+            document.documentElement.style.setProperty('--mouse-y', `${y}%`);
+        });
+
+        interruptor.addEventListener('click', () => {
+            if (step === 0) {
+                playSound('click'); interruptor.classList.add('on'); step = 1;
+                msg.innerText = "Troque a lâmpada."; inst.innerText = "Aperte L para acender a lanterna.";
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toUpperCase();
+            
+            if (step === 1 && key === 'L') {
+                playSound('click'); flashlight.style.display = 'block'; caixa.style.display = 'flex';
+                msg.innerText = "Olha, uma caixa ali do lado."; inst.innerText = "Encoste o mouse na caixa.";
+                step = 2;
+            }
+            else if (step === 3 && key === 'F') {
+                playSound('click'); caixa.style.display = 'none'; escada.style.display = 'flex';
+                msg.innerText = "Lâmpada na mão! Agora procure uma escada."; inst.innerText = "Encoste o mouse na escada.";
+                step = 4;
+            }
+            else if (step === 5 && key === 'E') {
+                playSound('click'); msg.innerText = "Segurando a escada."; inst.innerText = "Aperte S para subir ou W para largar.";
+                step = 6;
+            }
+            else if (step === 6 && key === 'W') {
+                playSound('click'); msg.innerText = "Largou a escada."; inst.innerText = "Aperte E para segurar de novo.";
+                step = 5;
+            }
+            else if (step === 6 && key === 'S') {
+                playSound('click'); escada.style.display = 'none';
+                msg.innerText = "No topo da escada!"; inst.innerText = "Aperte R para trocar a lâmpada.";
+                step = 7;
+            }
+            else if (step === 7 && key === 'R') {
+                playSound('click'); msg.innerText = "Lâmpada trocada!"; inst.innerText = "Aperte A para acender a lâmpada.";
+                step = 8;
+            }
+            else if (step === 8 && key === 'A') {
+                playSound('boom'); step = 9;
+                flashlight.style.display = 'none'; interruptor.style.display = 'none';
+                msg.innerText = "BOOM! O disjuntor explodiu com o poder do site podre!"; 
+                inst.innerText = "Aperte L para ligar a lanterna reserva.";
+            }
+            else if (step === 9 && key === 'L') {
+                playSound('click'); flashlight.style.display = 'block'; disjuntor.style.display = 'flex';
+                msg.innerText = "Achei a caixa de disjuntores!"; inst.innerText = "Encoste o mouse no disjuntor (⚡).";
+                step = 10;
+            }
+            else if (step === 11 && key === 'G') {
+                playSound('boom'); step = 12;
+                flashlight.style.display = 'none'; disjuntor.style.display = 'none';
+                msg.innerText = ""; inst.innerText = "";
+                setTimeout(() => { finalScreen.style.display = 'flex'; }, 500);
+            }
+        });
+
+        caixa.addEventListener('mouseenter', () => { if (step === 2) { inst.innerText = "Aperte F para pegar lâmpada."; step = 3; } });
+        escada.addEventListener('mouseenter', () => { if (step === 4) { inst.innerText = "Aperte E para segurar a escada."; step = 5; } });
+        disjuntor.addEventListener('mouseenter', () => { if (step === 10) { inst.innerText = "Aperte G para ligar a chave geral."; step = 11; } });
+    </script>
+</body>
+</html>
